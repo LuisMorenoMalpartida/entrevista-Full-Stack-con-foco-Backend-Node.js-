@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Base de datos
+*.sqlite
+*.db
