@@ -86,19 +86,20 @@ export function CambiarEstadoModal({ open, onOpenChange, tramite }) {
   }, [open, cambiarMutation]);
 
   const onSubmit = async (data) => {
-    try {
-      await cambiarMutation.mutateAsync({
-        id: tramite.id,
-        data: {
-          estado_nuevo: data.estado_nuevo,
-          comentario: data.comentario || '',
-        },
-      });
-      onOpenChange(false);
-    } catch {
-      toast.error('Error al cambiar el estado');
-    }
-  };
+  try {
+    await cambiarMutation.mutateAsync({
+      id: tramite.id,
+      data: {
+        nuevoEstado: data.estado_nuevo,
+        comentario: data.comentario || '',
+      },
+    });
+
+    onOpenChange(false);
+  } catch {
+    toast.error('Error al cambiar el estado');
+  }
+};
 
   const isLoading = cambiarMutation.isPending;
 

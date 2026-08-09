@@ -76,7 +76,7 @@ export class TramiteService {
         const correlativo = await this.repository.getNextCorrelativo(anio);
         const codigo = `INM-${anio}-${String(correlativo).padStart(4, '0')}`;
 
-        const tramite = await this.repository.create({
+        await this.repository.create({
           codigo,
           cliente_id: cliente.id,
           placa: tramiteData.placa,
@@ -87,8 +87,13 @@ export class TramiteService {
           monto: tramiteData.monto
         }, t);
 
+        const tramiteCreado = await this.repository.findByCodigo(codigo);
+        if (!tramiteCreado) {
+          throw new Error('No se pudo obtener el trámite recién creado');
+        }
+
         await this.seguimientoService.crearSeguimiento(
-          tramite.id,
+          tramiteCreado.id,
           null,
           'REGISTRADO',
           'Trámite creado',
@@ -97,7 +102,7 @@ export class TramiteService {
         );
 
         return {
-          ...tramite,
+          ...tramiteCreado,
           cliente
         };
       });

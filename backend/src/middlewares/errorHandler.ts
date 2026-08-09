@@ -24,6 +24,15 @@ export function errorHandler(
     return;
   }
 
+  if (process.env.NODE_ENV === 'development') {
+    res.status(500).json({
+      ok: false,
+      mensaje: err.message || 'Error interno del servidor',
+      stack: err.stack,
+    });
+    return;
+  }
+
   res.status(500).json({
     ok: false,
     mensaje: 'Error interno del servidor',
