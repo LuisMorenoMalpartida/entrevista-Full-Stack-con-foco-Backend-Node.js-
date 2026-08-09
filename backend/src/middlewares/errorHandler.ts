@@ -4,9 +4,9 @@ import type { ApiResponse } from '../types/index.js';
 
 export function errorHandler(
   err: Error,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
   console.error('Error:', err);
 
@@ -24,7 +24,6 @@ export function errorHandler(
     return;
   }
 
-  // Error interno no controlado
   res.status(500).json({
     ok: false,
     mensaje: 'Error interno del servidor',

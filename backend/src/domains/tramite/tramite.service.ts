@@ -1,7 +1,7 @@
 import { TramiteRepository } from './tramite.repository.js';
-import { SeguimientoService } from '../../../../seguimiento/seguimiento.service.js';
+import { SeguimientoService } from './seguimiento/seguimiento.service.js';
 import { ClienteService } from '../cliente/cliente.service.js';
-import pool from '../../config/database.js';
+import models from '../../config/models/index.js';
 import type { Tramite, Cliente, EstadoTramite } from '../../types/index.js';
 import { BusinessError, NotFoundError } from '../../utils/errors.js';
 import { ESTADOS_NO_ELIMINABLES, esEstadoFinal } from '../../utils/estados.js';
@@ -62,55 +62,49 @@ export class TramiteService {
     clienteData: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>,
     tramiteData: Omit<Tramite, 'id' | 'codigo' | 'cliente_id' | 'estado' | 'created_at' | 'updated_at'>
   ): Promise<any> {
-    const client = await pool.connect();
+    const { sequelize } = models;
 
     try {
-      await client.query('BEGIN');
+      const result = await sequelize.transaction(async (t: any) => {
+        let cliente = await this.clienteService.obtenerOcrearCliente(
+          clienteData.tipo_doc,
+          clienteData.num_doc,
+          clienteData
+        );
 
-      // Obtener o crear cliente
-      let cliente = await this.clienteService.obtenerOcrearCliente(
-        clienteData.tipo_doc,
-        clienteData.num_doc,
-        clienteData
-      );
+        const anio = new Date().getFullYear();
+        const correlativo = await this.repository.getNextCorrelativo(anio);
+        const codigo = `INM-${anio}-${String(correlativo).padStart(4, '0')}`;
 
-      // Generar código
-      const anio = new Date().getFullYear();
-      const correlativo = await this.repository.getNextCorrelativo(anio);
-      const codigo = `INM-${anio}-${String(correlativo).padStart(4, '0')}`;
+        const tramite = await this.repository.create({
+          codigo,
+          cliente_id: cliente.id,
+          placa: tramiteData.placa,
+          marca: tramiteData.marca,
+          modelo: tramiteData.modelo,
+          anio: tramiteData.anio,
+          estado: 'REGISTRADO',
+          monto: tramiteData.monto
+        }, t);
 
-      // Crear trámite
-      const tramite = await this.repository.create({
-        codigo,
-        cliente_id: cliente.id,
-        placa: tramiteData.placa,
-        marca: tramiteData.marca,
-        modelo: tramiteData.modelo,
-        anio: tramiteData.anio,
-        estado: 'REGISTRADO',
-        monto: tramiteData.monto
+        await this.seguimientoService.crearSeguimiento(
+          tramite.id,
+          null,
+          'REGISTRADO',
+          'Trámite creado',
+          'operador',
+          t
+        );
+
+        return {
+          ...tramite,
+          cliente
+        };
       });
 
-      // Crear primer seguimiento
-      await this.seguimientoService.crearSeguimiento(
-        tramite.id,
-        null,
-        'REGISTRADO',
-        'Trámite creado',
-        'operador'
-      );
-
-      await client.query('COMMIT');
-
-      return {
-        ...tramite,
-        cliente
-      };
+      return result;
     } catch (error) {
-      await client.query('ROLLBACK');
       throw error;
-    } finally {
-      client.release();
     }
   }
 
@@ -121,18 +115,15 @@ export class TramiteService {
   ): Promise<any> {
     const tramite = await this.obtenerTramite(id);
     
-    // Verificar que no esté en estado final
     if (esEstadoFinal(tramite.estado)) {
       throw new BusinessError(`No se puede editar un trámite en estado ${tramite.estado}`);
     }
 
-    // Actualizar cliente si se proporcionan datos
     let cliente = tramite.cliente;
     if (clienteData && Object.keys(clienteData).length > 0) {
       cliente = await this.clienteService.editarCliente(cliente.id, clienteData);
     }
 
-    // Actualizar trámite
     const tramiteActualizado = await this.repository.update(id, tramiteData);
 
     return {
@@ -154,7 +145,6 @@ export class TramiteService {
 
     const estadoActual = tramite.estado as EstadoTramite;
 
-    // Validar transición
     await this.seguimientoService.crearSeguimiento(
       id,
       estadoActual,
@@ -163,7 +153,6 @@ export class TramiteService {
       usuario
     );
 
-    // Actualizar estado del trámite
     const tramiteActualizado = await this.repository.updateEstado(id, nuevoEstado);
 
     return {
@@ -190,28 +179,19 @@ export class TramiteService {
 
     const estado = tramite.estado as EstadoTramite;
     
-    // Verificar si se puede eliminar
     if (ESTADOS_NO_ELIMINABLES.includes(estado)) {
       throw new BusinessError(`No se puede eliminar un trámite en estado ${estado}`);
     }
 
-    const client = await pool.connect();
+    const { sequelize } = models;
 
     try {
-      await client.query('BEGIN');
-
-      // Eliminar seguimientos (ON DELETE CASCADE se encarga)
-      await this.seguimientoService.eliminarHistorial(id);
-      
-      // Eliminar trámite
-      await this.repository.delete(id);
-
-      await client.query('COMMIT');
+      await sequelize.transaction(async (t: any) => {
+        await this.seguimientoService.eliminarHistorial(id, t);
+        await this.repository.delete(id, t);
+      });
     } catch (error) {
-      await client.query('ROLLBACK');
       throw error;
-    } finally {
-      client.release();
     }
   }
 }

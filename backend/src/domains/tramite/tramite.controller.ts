@@ -80,10 +80,10 @@ export class TramiteController {
   async cambiarEstado(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { estado_nuevo, comentario } = req.body;
+      const { nuevoEstado, comentario } = req.body;
       const result = await tramiteService.cambiarEstado(
         Number(id),
-        estado_nuevo,
+        nuevoEstado,
         comentario,
         'operador'
       );

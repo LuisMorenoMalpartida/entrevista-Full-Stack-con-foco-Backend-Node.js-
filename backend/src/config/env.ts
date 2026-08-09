@@ -5,7 +5,7 @@ dotenv.config();
 
 const envSchema = z.object({
   DB_HOST: z.string().min(1),
-  DB_PORT: z.string().transform(Number),
+  DB_PORT: z.string().transform(Number).default('3306'),
   DB_USER: z.string().min(1),
   DB_PASSWORD: z.string().min(1),
   DB_NAME: z.string().min(1),
