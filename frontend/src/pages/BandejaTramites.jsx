@@ -196,10 +196,10 @@ export function BandejaTramites() {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm font-medium text-gray-900">
-                      {tramite.nombres} {tramite.ap_paterno}
+                      {tramite.cliente?.nombres} {tramite.cliente?.ap_paterno}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {tramite.tipo_doc}: {tramite.num_doc}
+                      {tramite.cliente?.tipo_doc}: {tramite.cliente?.num_doc}
                     </div>
                   </TableCell>
                   <TableCell>
