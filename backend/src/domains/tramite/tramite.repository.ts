@@ -12,12 +12,23 @@ export class TramiteRepository {
     offset: number = 0
   ): Promise<{ tramites: any[]; total: number }> {
     const where: any = {};
+
     const include: any = [
       {
         model: ClienteModel,
         as: 'cliente',
         required: true,
-        attributes: ['id', 'tipo_doc', 'num_doc', 'nombres', 'ap_paterno', 'ap_materno', 'email', 'telefono', 'fecha_nac'],
+        attributes: [
+          'id',
+          'tipo_doc',
+          'num_doc',
+          'nombres',
+          'ap_paterno',
+          'ap_materno',
+          'email',
+          'telefono',
+          'fecha_nac',
+        ],
       },
     ];
 
@@ -26,31 +37,35 @@ export class TramiteRepository {
     }
 
     if (search) {
-      include[0].where = {
-        [Op.or]: [
-          { codigo: { [Op.like]: `%${search}%` } },
-          { num_doc: { [Op.like]: `%${search}%` } },
-          { nombres: { [Op.like]: `%${search}%` } },
-        ],
-      };
-      where.codigo = { [Op.like]: `%${search}%` };
+      const searchValue = `%${search}%`;
+
+      where[Op.or] = [
+        { codigo: { [Op.like]: searchValue } },
+        { '$cliente.num_doc$': { [Op.like]: searchValue } },
+        { '$cliente.nombres$': { [Op.like]: searchValue } },
+      ];
     }
 
-    const { rows: tramites, count: total } = await TramiteModel.findAndCountAll({
-      where,
-      include,
-      limit,
-      offset,
-      order: [['id', 'DESC']],
-      distinct: true,
-    });
+    const { rows: tramites, count: total } =
+      await TramiteModel.findAndCountAll({
+        where,
+        include,
+        limit,
+        offset,
+        order: [['id', 'DESC']],
+        distinct: true,
+      });
 
     return {
-      tramites: tramites.map((t: any) => ({ ...t.get({ plain: true }), cliente: t.cliente ? t.cliente.get({ plain: true }) : null })),
+      tramites: tramites.map((t: any) => ({
+        ...t.get({ plain: true }),
+        cliente: t.cliente
+          ? t.cliente.get({ plain: true })
+          : null,
+      })),
       total,
     };
   }
-
   async findById(id: number): Promise<any | null> {
     const tramite = await TramiteModel.findByPk(id, {
       include: [
@@ -65,7 +80,7 @@ export class TramiteRepository {
     if (!tramite) return null;
 
     const plain = tramite.get({ plain: true }) as any;
-    plain.cliente = plain.cliente ? plain.cliente.get({ plain: true }) : null;
+    plain.cliente = tramite.cliente ? tramite.cliente.get({ plain: true }) : null;
     return plain;
   }
 

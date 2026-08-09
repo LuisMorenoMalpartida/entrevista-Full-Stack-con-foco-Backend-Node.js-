@@ -18,7 +18,11 @@ const clienteSchema = z.object({
   ap_materno: z.string().max(50).optional(),
   email: z.string().email().optional().or(z.literal('')),
   telefono: z.string().max(20).optional(),
-  fecha_nac: z.coerce.date().optional().nullable(),
+  fecha_nac: z.union([z.string().optional().nullable(), z.literal('')]).transform((val) => {
+    if (!val || val === '') return null;
+    const date = new Date(val);
+    return isNaN(date.getTime()) ? null : date;
+  }),
 });
 
 const tramiteDataSchema = z.object({
@@ -50,7 +54,11 @@ export const tramiteUpdateSchema = z.object({
       ap_materno: z.string().max(50).optional(),
       email: z.string().email().optional().or(z.literal('')),
       telefono: z.string().max(20).optional(),
-      fecha_nac: z.coerce.date().optional().nullable(),
+      fecha_nac: z.union([z.string().optional().nullable(), z.literal('')]).transform((val) => {
+        if (!val || val === '') return null;
+        const date = new Date(val);
+        return isNaN(date.getTime()) ? null : date;
+      }),
     })
     .optional(),
 });
