@@ -1,23 +1,18 @@
-import { SeguimientoRepository } from './seguimiento.repository.js';
-import type { TramiteSeguimiento, EstadoTramite } from '../backend/src/types/index.js';
-import { BusinessError } from '../backend/src/utils/errors.js';
-import { validarTransicion, esEstadoFinal } from '../backend/src/utils/estados.js';
+import models from '../../../config/models/index.js';
+import type { TramiteSeguimiento, EstadoTramite } from '../../../types/index.js';
+import { BusinessError } from '../../../utils/errors.js';
+import { validarTransicion, esEstadoFinal } from '../../../utils/estados.js';
+const { TramiteSeguimiento: SeguimientoModel } = models;
 
 export class SeguimientoService {
-  private repository: SeguimientoRepository;
-
-  constructor() {
-    this.repository = new SeguimientoRepository();
-  }
-
   async crearSeguimiento(
     tramiteId: number,
     estadoAnterior: EstadoTramite | null,
     estadoNuevo: EstadoTramite,
     comentario?: string,
-    usuario: string = 'operador'
+    usuario: string = 'operador',
+    options?: any
   ): Promise<TramiteSeguimiento> {
-    // Validar la transición
     if (estadoAnterior) {
       if (esEstadoFinal(estadoAnterior)) {
         throw new BusinessError(`El estado ${estadoAnterior} es final, no permite cambios`);
@@ -28,22 +23,26 @@ export class SeguimientoService {
       }
     }
 
-    const seguimiento = await this.repository.create({
+    const seguimiento = await SeguimientoModel.create({
       tramite_id: tramiteId,
       estado_anterior: estadoAnterior,
       estado_nuevo: estadoNuevo,
       comentario,
-      usuario
-    });
+      usuario,
+    }, options);
 
-    return seguimiento;
+    return seguimiento.get({ plain: true }) as TramiteSeguimiento;
   }
 
   async obtenerHistorial(tramiteId: number): Promise<TramiteSeguimiento[]> {
-    return await this.repository.findByTramiteId(tramiteId);
+    const seguimientos = await SeguimientoModel.findAll({
+      where: { tramite_id: tramiteId },
+      order: [['created_at', 'ASC']],
+    });
+    return seguimientos.map((s: any) => s.get({ plain: true }) as TramiteSeguimiento);
   }
 
-  async eliminarHistorial(tramiteId: number): Promise<void> {
-    await this.repository.deleteByTramiteId(tramiteId);
+  async eliminarHistorial(tramiteId: number, options?: any): Promise<void> {
+    await SeguimientoModel.destroy({ where: { tramite_id: tramiteId }, ...options });
   }
 }

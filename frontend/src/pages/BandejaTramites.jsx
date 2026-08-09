@@ -1,6 +1,11 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { tramiteService } from '../services/tramite.service.js';
+import { useTramites } from '@/modules/tramite/hooks/useTramites.js';
+import {
+  TramiteForm,
+  CambiarEstadoModal,
+  EliminarTramiteModal,
+  TramiteDetalle,
+} from '@/modules/tramite/index.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,13 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -30,6 +28,16 @@ import { Search, Plus, Eye, Edit, Trash2, ArrowRight, Loader2 } from 'lucide-rea
 
 const ESTADOS = ['REGISTRADO', 'EN_FIRMAS', 'PRESENTADO', 'OBSERVADO', 'INSCRITO', 'CERRADO', 'ANULADO'];
 
+const TRANSICIONES_PERMITIDAS = {
+  REGISTRADO: ['EN_FIRMAS', 'ANULADO'],
+  EN_FIRMAS: ['PRESENTADO', 'OBSERVADO', 'ANULADO'],
+  OBSERVADO: ['EN_FIRMAS', 'PRESENTADO', 'ANULADO'],
+  PRESENTADO: ['INSCRITO', 'OBSERVADO'],
+  INSCRITO: ['CERRADO'],
+  CERRADO: [],
+  ANULADO: [],
+};
+
 const getEstadoColor = (estado) => {
   const colors = {
     REGISTRADO: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
@@ -38,7 +46,7 @@ const getEstadoColor = (estado) => {
     OBSERVADO: 'bg-red-100 text-red-800 hover:bg-red-100',
     INSCRITO: 'bg-green-100 text-green-800 hover:bg-green-100',
     CERRADO: 'bg-gray-600 text-white hover:bg-gray-600',
-    ANULADO: 'bg-gray-300 text-gray-600 hover:bg-gray-300'
+    ANULADO: 'bg-gray-300 text-gray-600 hover:bg-gray-300',
   };
   return colors[estado] || 'bg-gray-100 text-gray-800';
 };
@@ -49,20 +57,52 @@ export function BandejaTramites() {
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['tramites', { estado: filtroEstado, search, page }],
-    queryFn: () => tramiteService.listar({
-      estado: filtroEstado || undefined,
-      search: search || undefined,
-      limit,
-      page
-    }),
+  const [openForm, setOpenForm] = useState(false);
+  const [selectedTramite, setSelectedTramite] = useState(null);
+  const [openDetalle, setOpenDetalle] = useState(false);
+  const [openCambiarEstado, setOpenCambiarEstado] = useState(false);
+  const [openEliminar, setOpenEliminar] = useState(false);
+
+  const { data, isLoading, error, refetch } = useTramites({
+    estado: filtroEstado,
+    search,
+    page,
+    limit,
   });
 
   const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
   };
+
+  const handleNuevo = () => {
+    setSelectedTramite(null);
+    setOpenForm(true);
+  };
+
+  const handleEditar = (tramite) => {
+    setSelectedTramite(tramite);
+    setOpenForm(true);
+  };
+
+  const handleVer = (tramite) => {
+    setSelectedTramite(tramite);
+    setOpenDetalle(true);
+  };
+
+  const handleCambiarEstado = (tramite) => {
+    setSelectedTramite(tramite);
+    setOpenCambiarEstado(true);
+  };
+
+  const handleEliminar = (tramite) => {
+    setSelectedTramite(tramite);
+    setOpenEliminar(true);
+  };
+
+  const canEdit = (estado) => !['CERRADO', 'ANULADO'].includes(estado);
+  const canCambiarEstado = (estado) => !['CERRADO', 'ANULADO'].includes(estado);
+  const canEliminar = (estado) => !['INSCRITO', 'CERRADO', 'ANULADO'].includes(estado);
 
   if (isLoading) {
     return (
@@ -92,26 +132,14 @@ export function BandejaTramites() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Bandeja de Trámites</h1>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Nuevo Trámite
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Crear Nuevo Trámite</DialogTitle>
-            </DialogHeader>
-            <p className="text-gray-500">Formulario de creación pendiente</p>
-          </DialogContent>
-        </Dialog>
+        <Button className="flex items-center gap-2" onClick={handleNuevo}>
+          <Plus className="h-4 w-4" />
+          Nuevo Trámite
+        </Button>
       </div>
 
-      {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <form onSubmit={handleSearch} className="flex-1 flex gap-2">
           <div className="relative flex-1">
@@ -141,7 +169,6 @@ export function BandejaTramites() {
         </Select>
       </div>
 
-      {/* Tabla */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <Table>
           <TableHeader>
@@ -191,16 +218,43 @@ export function BandejaTramites() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleVer(tramite)}
+                        title="Ver detalle"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleEditar(tramite)}
+                        disabled={!canEdit(tramite.estado)}
+                        title={!canEdit(tramite.estado) ? 'No editable en este estado' : 'Editar'}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleCambiarEstado(tramite)}
+                        disabled={!canCambiarEstado(tramite.estado) || TRANSICIONES_PERMITIDAS[tramite.estado]?.length === 0}
+                        title={!canCambiarEstado(tramite.estado) ? 'No se puede cambiar estado' : 'Cambiar estado'}
+                      >
                         <ArrowRight className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleEliminar(tramite)}
+                        disabled={!canEliminar(tramite.estado)}
+                        title={!canEliminar(tramite.estado) ? 'No se puede eliminar en este estado' : 'Eliminar'}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -211,7 +265,6 @@ export function BandejaTramites() {
           </TableBody>
         </Table>
 
-        {/* Paginación */}
         {totalPages > 0 && (
           <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
             <div className="text-sm text-gray-500">
@@ -241,6 +294,31 @@ export function BandejaTramites() {
           </div>
         )}
       </div>
+
+      <TramiteForm
+        open={openForm}
+        onOpenChange={setOpenForm}
+        tramite={selectedTramite}
+      />
+
+      <TramiteDetalle
+        open={openDetalle}
+        onOpenChange={setOpenDetalle}
+        tramiteId={selectedTramite?.id}
+      />
+
+      <CambiarEstadoModal
+        open={openCambiarEstado}
+        onOpenChange={setOpenCambiarEstado}
+        tramite={selectedTramite}
+      />
+
+      <EliminarTramiteModal
+        open={openEliminar}
+        onOpenChange={setOpenEliminar}
+        tramite={selectedTramite}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

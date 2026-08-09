@@ -17,7 +17,7 @@ export function validarTransicion(
   estadoActual: EstadoTramite,
   nuevoEstado: EstadoTramite
 ): boolean {
-  const transiciones = TRANSICIONES_PERMITIDAS[estadoActual];
+  const transiciones = TRANSICIONES_PERMITIDAS[estadoActual] ?? [];
   return transiciones.includes(nuevoEstado);
 }
 

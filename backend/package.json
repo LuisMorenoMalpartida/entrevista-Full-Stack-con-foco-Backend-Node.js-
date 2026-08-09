@@ -2,20 +2,16 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "API para mini sistema de tramites",
-  "main": "src/server.js",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "dev": "nodemon",
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^5.1.0",
-    "helmet": "^8.1.0",
-    "morgan": "^1.10.0",
-    "pg": "^8.14.1",
+    "mysql2": "3.14.1",
+    "sequelize": "6.37.7",
     "zod": "^3.24.3"
   },
   "devDependencies": {
@@ -23,9 +19,12 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/morgan": "^1.9.9",
-    "@types/node": "^22.20.1",
+    "@types/node": "^22.14.0",
+    "@types/sequelize": "4.28.0",
+    "@types/validator": "13.12.2",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
-    "typescript": "^7.0.2"
+    "tsx": "^4.23.11",
+    "typescript": "^5.8.3"
   }
 }

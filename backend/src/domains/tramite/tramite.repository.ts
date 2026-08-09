@@ -1,6 +1,8 @@
-import pool from '../../config/database.js';
-import type { Tramite, EstadoTramite, Cliente } from '../../types/index.js';
+import { Op } from 'sequelize';
+import models from '../../config/models/index.js';
+import type { Tramite, EstadoTramite } from '../../types/index.js';
 import { NotFoundError } from '../../utils/errors.js';
+const { Tramite: TramiteModel, Cliente: ClienteModel } = models;
 
 export class TramiteRepository {
   async findAll(
@@ -9,157 +11,109 @@ export class TramiteRepository {
     limit: number = 10,
     offset: number = 0
   ): Promise<{ tramites: any[]; total: number }> {
-    let query = `
-      SELECT t.*, 
-             c.id as cliente_id, c.tipo_doc, c.num_doc, c.nombres, c.ap_paterno, c.ap_materno,
-             c.email, c.telefono, c.fecha_nac
-      FROM tramites t
-      JOIN clientes c ON t.cliente_id = c.id
-      WHERE 1=1
-    `;
-    const params: (string | number)[] = [];
-    let paramCount = 0;
+    const where: any = {};
+    const include: any = [
+      {
+        model: ClienteModel,
+        as: 'cliente',
+        required: true,
+        attributes: ['id', 'tipo_doc', 'num_doc', 'nombres', 'ap_paterno', 'ap_materno', 'email', 'telefono', 'fecha_nac'],
+      },
+    ];
 
     if (estado) {
-      paramCount++;
-      query += ` AND t.estado = $${paramCount}`;
-      params.push(estado);
+      where.estado = estado;
     }
 
     if (search) {
-      paramCount++;
-      query += ` AND (t.codigo ILIKE $${paramCount} OR c.num_doc ILIKE $${paramCount} OR c.nombres ILIKE $${paramCount})`;
-      params.push(`%${search}%`);
+      include[0].where = {
+        [Op.or]: [
+          { codigo: { [Op.like]: `%${search}%` } },
+          { num_doc: { [Op.like]: `%${search}%` } },
+          { nombres: { [Op.like]: `%${search}%` } },
+        ],
+      };
+      where.codigo = { [Op.like]: `%${search}%` };
     }
 
-    const countQuery = query.replace(
-      'SELECT t.*, c.id as cliente_id, c.tipo_doc, c.num_doc, c.nombres, c.ap_paterno, c.ap_materno, c.email, c.telefono, c.fecha_nac',
-      'SELECT COUNT(*) as total'
-    );
-    const countResult = await pool.query(countQuery, params);
-    const total = parseInt(countResult.rows[0].total);
+    const { rows: tramites, count: total } = await TramiteModel.findAndCountAll({
+      where,
+      include,
+      limit,
+      offset,
+      order: [['id', 'DESC']],
+      distinct: true,
+    });
 
-    paramCount++;
-    query += ` ORDER BY t.id DESC LIMIT $${paramCount}`;
-    params.push(limit);
-    
-    paramCount++;
-    query += ` OFFSET $${paramCount}`;
-    params.push(offset);
-
-    const result = await pool.query(query, params);
     return {
-      tramites: result.rows,
-      total
+      tramites: tramites.map((t: any) => ({ ...t.get({ plain: true }), cliente: t.cliente ? t.cliente.get({ plain: true }) : null })),
+      total,
     };
   }
 
   async findById(id: number): Promise<any | null> {
-    const result = await pool.query(
-      `SELECT t.*, 
-              c.id as cliente_id, c.tipo_doc, c.num_doc, c.nombres, c.ap_paterno, c.ap_materno,
-              c.email, c.telefono, c.fecha_nac
-       FROM tramites t
-       JOIN clientes c ON t.cliente_id = c.id
-       WHERE t.id = $1`,
-      [id]
-    );
-    return result.rows[0] || null;
+    const tramite = await TramiteModel.findByPk(id, {
+      include: [
+        {
+          model: ClienteModel,
+          as: 'cliente',
+          attributes: ['id', 'tipo_doc', 'num_doc', 'nombres', 'ap_paterno', 'ap_materno', 'email', 'telefono', 'fecha_nac'],
+        },
+      ],
+    });
+
+    if (!tramite) return null;
+
+    const plain = tramite.get({ plain: true }) as any;
+    plain.cliente = plain.cliente ? plain.cliente.get({ plain: true }) : null;
+    return plain;
   }
 
   async findByCodigo(codigo: string): Promise<Tramite | null> {
-    const result = await pool.query(
-      'SELECT * FROM tramites WHERE codigo = $1',
-      [codigo]
-    );
-    return result.rows[0] || null;
+    const tramite = await TramiteModel.findOne({ where: { codigo } });
+    return tramite ? (tramite.get({ plain: true }) as Tramite) : null;
   }
 
-  async create(tramiteData: Omit<Tramite, 'id' | 'created_at' | 'updated_at'>): Promise<Tramite> {
-    const { codigo, cliente_id, placa, marca, modelo, anio, estado, monto } = tramiteData;
-    
-    const result = await pool.query(
-      `INSERT INTO tramites 
-       (codigo, cliente_id, placa, marca, modelo, anio, estado, monto)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING *`,
-      [codigo, cliente_id, placa ?? null, marca, modelo, anio, estado, monto ?? null]
-    );
-    
-    return result.rows[0] as Tramite;
+  async create(tramiteData: Omit<Tramite, 'id' | 'created_at' | 'updated_at'>, options?: any): Promise<Tramite> {
+    const tramite = await TramiteModel.create(tramiteData as any, options);
+    return tramite.get({ plain: true }) as Tramite;
   }
 
-  async update(id: number, tramiteData: Partial<Omit<Tramite, 'id' | 'created_at' | 'updated_at'>>): Promise<Tramite> {
-    const fields: string[] = [];
-    const values: (string | number | null)[] = [];
-    let paramCount = 0;
-
-    const allowedFields = ['placa', 'marca', 'modelo', 'anio', 'monto'];
-    
-    for (const [key, value] of Object.entries(tramiteData)) {
-      if (allowedFields.includes(key) && value !== undefined) {
-        paramCount++;
-        fields.push(`${key} = $${paramCount}`);
-        values.push(value ?? null);
-      }
-    }
-
-    if (fields.length === 0) {
-      throw new Error('No hay campos para actualizar');
-    }
-
-    paramCount++;
-    values.push(id);
-    fields.push(`updated_at = CURRENT_TIMESTAMP`);
-
-    const query = `
-      UPDATE tramites 
-      SET ${fields.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-
-    const result = await pool.query(query, values);
-    
-    if (result.rows.length === 0) {
+  async update(id: number, tramiteData: Partial<Omit<Tramite, 'id' | 'codigo' | 'cliente_id' | 'estado' | 'created_at' | 'updated_at'>>, options?: any): Promise<Tramite> {
+    const tramite = await TramiteModel.findByPk(id);
+    if (!tramite) {
       throw new NotFoundError('Trámite');
     }
 
-    return result.rows[0] as Tramite;
+    await tramite.update(tramiteData as any, options);
+    return tramite.get({ plain: true }) as Tramite;
   }
 
-  async updateEstado(id: number, estado: EstadoTramite): Promise<Tramite> {
-    const result = await pool.query(
-      `UPDATE tramites 
-       SET estado = $1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2
-       RETURNING *`,
-      [estado, id]
-    );
-    
-    if (result.rows.length === 0) {
+  async updateEstado(id: number, estado: EstadoTramite, options?: any): Promise<Tramite> {
+    const tramite = await TramiteModel.findByPk(id);
+    if (!tramite) {
       throw new NotFoundError('Trámite');
     }
 
-    return result.rows[0] as Tramite;
+    await tramite.update({ estado }, options);
+    return tramite.get({ plain: true }) as Tramite;
   }
 
-  async delete(id: number): Promise<void> {
-    const result = await pool.query(
-      'DELETE FROM tramites WHERE id = $1 RETURNING id',
-      [id]
-    );
-    
-    if (result.rows.length === 0) {
+  async delete(id: number, options?: any): Promise<void> {
+    const result = await TramiteModel.destroy({ where: { id }, ...options });
+    if (result === 0) {
       throw new NotFoundError('Trámite');
     }
   }
 
   async getNextCorrelativo(anio: number): Promise<number> {
-    const result = await pool.query(
-      `SELECT COUNT(*) as total FROM tramites WHERE codigo LIKE $1`,
-      [`INM-${anio}-%`]
-    );
-    return parseInt(result.rows[0].total) + 1;
+    const result = await TramiteModel.count({
+      where: {
+        codigo: {
+          [Op.like]: `INM-${anio}-%`,
+        },
+      },
+    });
+    return result + 1;
   }
 }

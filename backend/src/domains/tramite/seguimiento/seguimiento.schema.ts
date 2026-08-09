@@ -9,6 +9,6 @@ export const seguimientoSchema = z.object({
 });
 
 export const cambiarEstadoSchema = z.object({
-  estado_nuevo: z.enum(['REGISTRADO', 'EN_FIRMAS', 'PRESENTADO', 'OBSERVADO', 'INSCRITO', 'CERRADO', 'ANULADO']),
+  nuevoEstado: z.enum(['REGISTRADO', 'EN_FIRMAS', 'PRESENTADO', 'OBSERVADO', 'INSCRITO', 'CERRADO', 'ANULADO']),
   comentario: z.string().optional(),
 });

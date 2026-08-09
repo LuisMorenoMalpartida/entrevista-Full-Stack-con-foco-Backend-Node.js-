@@ -1,60 +1,258 @@
-# Mini Sistema de Trámites
+# Prueba Técnica — Mini Sistema de Trámites
 
-Sistema para gestionar trámites vehiculares con máquina de estados y historial de seguimiento.
+Sistema web para la gestión de clientes y trámites, con seguimiento del estado de cada trámite.
 
-## Requisitos Previos
+## Stack Tecnológico
 
-- Node.js 20.19.x o superior
-- pnpm 8.x o superior (o npm 10)
-- PostgreSQL 14+ (Neon PostgreSQL)
-- Git
+### Backend
 
-## Base de Datos
+- Node.js
+- TypeScript
+- Express 5
+- Sequelize 6
+- mysql2
+- MySQL / MariaDB
+- Zod para validación
+- Arquitectura por capas y separación por dominios
 
-El proyecto usa Neon PostgreSQL como base de datos.
+### Frontend
 
-1. Crear una cuenta en [Neon](https://neon.tech)
-2. Crear un nuevo proyecto y obtener la cadena de conexión
-3. Ejecutar el script de base de datos:
+- React
+- JavaScript / JSX
+- Vite 8
+- Tailwind CSS
+- TanStack Query
+- React Hook Form
+- Zod
+- shadcn/ui
+- Axios
+
+### Base de Datos
+
+- MySQL / MariaDB
+- Script de estructura disponible en `database/schema.sql`
+- Relaciones mediante claves foráneas
+- Restricciones e índices definidos según los requerimientos del sistema
+
+## Funcionalidades
+
+### Clientes
+
+- Listado de clientes
+- Búsqueda de clientes
+- Creación de clientes
+- Edición de clientes
+- Consulta de información de un cliente
+
+### Trámites
+
+- Listado de trámites
+- Búsqueda y filtrado
+- Paginación
+- Creación de trámites
+- Edición de trámites
+- Consulta del detalle de un trámite
+- Eliminación de trámites según las reglas de negocio
+- Cambio de estado del trámite
+
+### Seguimiento
+
+- Registro del seguimiento de los trámites
+- Consulta del historial de seguimiento
+- Validación de transiciones de estado
+- Reglas de negocio asociadas al ciclo de vida del trámite
+
+## Endpoints Principales
+
+### Clientes
+
+```
+GET    /api/clientes?search=&limit=10&page=1
+POST   /api/clientes
+PUT    /api/clientes/:id
+GET    /api/clientes/:id
+```
+
+### Trámites
+
+```
+GET    /api/tramites?estado=&search=&limit=10&page=1
+POST   /api/tramites
+GET    /api/tramites/:id
+PUT    /api/tramites/:id
+DELETE /api/tramites/:id
+POST   /api/tramites/:id/cambiar-estado
+```
+
+### Seguimiento
+
+```
+GET /api/tramites/:id/seguimientos
+```
+
+## Arquitectura
+
+El backend está organizado por dominios y utiliza una arquitectura por capas:
+
+```
+Router
+  ↓
+Controller
+  ↓
+Service
+  ↓
+Repository
+  ↓
+Sequelize
+  ↓
+MySQL / MariaDB
+```
+
+Los servicios contienen las reglas de negocio, mientras que los repositorios encapsulan el acceso a datos.
+
+El dominio de trámites contiene el subdominio de seguimiento:
+
+```
+domains/
+├── cliente/
+└── tramite/
+    └── seguimiento/
+```
+
+## Estructura del Proyecto
+
+```
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── database.ts
+│   │   │   ├── env.ts
+│   │   │   └── models/
+│   │   │       ├── Cliente.ts
+│   │   │       ├── Tramite.ts
+│   │   │       ├── TramiteSeguimiento.ts
+│   │   │       └── index.ts
+│   │   │
+│   │   ├── domains/
+│   │   │   ├── cliente/
+│   │   │   │   ├── cliente.controller.ts
+│   │   │   │   ├── cliente.repository.ts
+│   │   │   │   ├── cliente.routes.ts
+│   │   │   │   ├── cliente.schema.ts
+│   │   │   │   ├── cliente.service.ts
+│   │   │   │   └── index.ts
+│   │   │   │
+│   │   │   └── tramite/
+│   │   │       ├── tramite.controller.ts
+│   │   │       ├── tramite.repository.ts
+│   │   │       ├── tramite.routes.ts
+│   │   │       ├── tramite.schema.ts
+│   │   │       ├── tramite.service.ts
+│   │   │       ├── index.ts
+│   │   │       └── seguimiento/
+│   │   │           ├── seguimiento.controller.ts
+│   │   │           ├── seguimiento.repository.ts
+│   │   │           ├── seguimiento.routes.ts
+│   │   │           ├── seguimiento.schema.ts
+│   │   │           ├── seguimiento.service.ts
+│   │   │           └── index.ts
+│   │   │
+│   │   ├── middlewares/
+│   │   │   ├── errorHandler.ts
+│   │   │   └── validate.ts
+│   │   │
+│   │   ├── types/
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── errors.ts
+│   │   │   └── estados.ts
+│   │   │
+│   │   └── server.ts
+│   │
+│   └── package.json
+│
+├── frontend/
+│   ├── src/
+│   │   ├── modules/
+│   │   │   ├── cliente/
+│   │   │   │   ├── api/
+│   │   │   │   ├── components/
+│   │   │   │   └── hooks/
+│   │   │   │
+│   │   │   └── tramite/
+│   │   │       ├── api/
+│   │   │       ├── components/
+│   │   │       ├── hooks/
+│   │   │       └── seguimiento/
+│   │   │           ├── api/
+│   │   │           ├── components/
+│   │   │           └── hooks/
+│   │   │
+│   │   ├── lib/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   └── App.jsx
+│   │
+│   └── package.json
+│
+├── database/
+│   └── schema.sql
+│
+├── backend/.env.example
+├── frontend/.env.example
+├── package.json
+├── pnpm-lock.yaml
+└── README.md
+```
+
+## Configuración
+
+### MySQL / MariaDB
+
+El backend utiliza Sequelize como ORM y mysql2 como driver de conexión.
+
+1. Crear previamente una base de datos MySQL/MariaDB.
+2. Ejecutar el script de estructura y seed:
 
 ```bash
-# Copiar el contenido de database/schema.sql y ejecutarlo en la consola de Neon
-# O usar psql:
-psql -h ep-xxxxx.us-east-2.aws.neon.tech -U neondb_owner -d neondb < database/schema.sql
+mysql -u root -p < database/schema.sql
+```
 
-# Variables de Entorno
+### Variables de Entorno
 
-## Backend (.env)
+Copiar el archivo `.env.example` a `.env` en cada carpeta y completar con los valores correspondientes.
 
-Crear archivo `.env` en la carpeta `backend/`:
+**Backend** (`backend/.env.example`):
 
 ```env
-# Configuración de la base de datos
-DB_HOST=ep-xxxxx.us-east-2.aws.neon.tech
-DB_PORT=5432
-DB_USER=neondb_owner
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
 DB_PASSWORD=tu_password
-DB_NAME=neondb
-
-# Configuración del servidor
+DB_NAME=tramites_db
 PORT=5000
 NODE_ENV=development
-
-# Configuración de CORS
 FRONTEND_URL=http://localhost:5173
 ```
 
-## Frontend (.env)
-
-Crear archivo `.env` en la carpeta `frontend/`:
+**Frontend** (`frontend/.env.example`):
 
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
 
-# Instalación y Ejecución
+Los nombres de las variables del backend deben coincidir con los definidos en `backend/src/config/env.ts`.
 
-## Backend
+## Instalación
+
+```bash
+pnpm install
+```
+
+## Ejecución
+
+### Backend
 
 ```bash
 cd backend
@@ -62,11 +260,13 @@ pnpm install
 pnpm run dev
 ```
 
-El servidor correrá en:
+Servidor:
 
-`http://localhost:5000`
+http://localhost:5000
 
-## Frontend
+### Frontend
+
+En otra terminal:
 
 ```bash
 cd frontend
@@ -74,119 +274,109 @@ pnpm install
 pnpm run dev
 ```
 
-La aplicación correrá en:
+Aplicación:
 
-`http://localhost:5173`
+http://localhost:5173
 
-# Endpoints Principales
+## Validación del Proyecto
 
-## Clientes
+### Backend
 
-- `GET /api/clientes` - Listar clientes (con búsqueda)
-- `POST /api/clientes` - Crear cliente
-- `PUT /api/clientes/:id` - Editar cliente
-- `GET /api/clientes/:id` - Obtener cliente
+Verificar tipado de TypeScript:
 
-## Trámites
+```bash
+cd backend
+npx tsc --noEmit
+```
 
-- `GET /api/tramites` - Listar trámites (con filtros y paginación)
-- `POST /api/tramites` - Crear trámite
-- `GET /api/tramites/:id` - Obtener detalle de trámite
-- `PUT /api/tramites/:id` - Editar trámite
-- `DELETE /api/tramites/:id` - Eliminar trámite
-- `POST /api/tramites/:id/cambiar-estado` - Cambiar estado del trámite
+### Frontend
 
-# Decisiones Técnicas
+Generar build de producción:
 
-## Backend
+```bash
+cd frontend
+npx vite build
+```
 
-- **PostgreSQL + Neon**: Uso de base de datos PostgreSQL con Neon para simplicidad y escalabilidad.
-- **Sin ORM**: Implementación directa con `pg` para mayor control y rendimiento.
-- **Arquitectura por capas**: Router → Controller → Service → Repository.
-- **Zod**: Validación de datos en el borde.
-- **Transacciones**: Uso de transacciones PostgreSQL para operaciones atómicas.
-
-## Frontend
-
-- **React 19 + Vite**: Stack moderno para desarrollo rápido.
-- **TanStack Query**: Manejo de estado del servidor.
-- **React Hook Form + Zod**: Manejo de formularios con validación.
-- **shadcn/ui**: Componentes UI consistentes.
-- **Tailwind CSS**: Estilos utilitarios.
+El frontend compila correctamente con Vite.
 
 ## Base de Datos
 
-- **Tablas**: `clientes`, `tramites`, `tramite_seguimiento`.
-- **Índices**: Optimizados para búsquedas frecuentes.
-- **Restricciones**: `UNIQUE`, `CHECK`, `FK` con `CASCADE` donde corresponde.
+Principales entidades:
 
-# Lo que Quedó Fuera
-
-- **Tests**: No implementé pruebas unitarias por tiempo, pero las estructuraría con Vitest.
-- **Autenticación JWT**: No implementada, se podría agregar como mejora.
-- **Docker Compose**: No incluido, pero sería fácil de agregar.
-- **TypeScript**: Usé JavaScript por simplicidad, pero migraría a TypeScript en una versión futura.
-
-# Mejoras Futuras
-
-1. Sistema de autenticación con JWT.
-2. Tests unitarios e integración.
-3. Docker Compose para despliegue fácil.
-4. Migración a TypeScript.
-5. Mejores animaciones y feedback visual.
-6. Sistema de notificaciones en tiempo real.
-7. Exportación de datos a Excel/PDF.
-8. Dashboard con métricas y estadísticas.
-
-# Estructura del Proyecto
-
-```text
-mini-sistema-tramites/
-├── backend/
-│   └── src/
-│       ├── config/           # Configuración (DB, env)
-│       ├── domains/          # Dominios de negocio
-│       │   ├── cliente/      # Dominio Cliente
-│       │   │   ├── cliente.controller.js
-│       │   │   ├── cliente.service.js
-│       │   │   ├── cliente.repository.js
-│       │   │   ├── cliente.routes.js
-│       │   │   └── cliente.schema.js
-│       │   └── tramite/       # Dominio Trámite
-│       │       ├── tramite.controller.js
-│       │       ├── tramite.service.js
-│       │       ├── tramite.repository.js
-│       │       ├── tramite.routes.js
-│       │       ├── tramite.schema.js
-│       │       └── subdomains/
-│       │           └── seguimiento/  # Subdominio Seguimiento
-│       │               ├── seguimiento.service.js
-│       │               └── seguimiento.repository.js
-│       ├── middlewares/      # Middlewares (error, validación)
-│       ├── utils/            # Utilidades
-│       └── server.js         # Punto de entrada
-├── frontend/
-│   └── src/
-│       ├── components/       # Componentes UI
-│       ├── domains/          # Dominios de negocio
-│       │   ├── cliente/
-│       │   └── tramite/
-│       │       └── subdomains/
-│       │           └── seguimiento/
-│       ├── hooks/            # Custom hooks
-│       ├── lib/              # Utilidades y configuración
-│       ├── pages/            # Páginas principales
-│       ├── services/         # Servicios API
-│       └── App.jsx
-├── database/
-│   └── schema.sql            # Script de base de datos
-├── .gitignore
-└── README.md
+```
+clientes
+    │
+    └── tramites
+          │
+          └── tramite_seguimiento
 ```
 
-# Notas de Ejecución
+Las relaciones, claves foráneas, índices y restricciones correspondientes están definidas en `database/schema.sql`.
 
-1. Asegurar que PostgreSQL esté corriendo y accesible.
-2. Configurar correctamente las variables de entorno.
-3. El backend y frontend deben correr en puertos diferentes.
-4. El frontend usa `VITE_API_URL` para apuntar al backend.
+## Lo Implementado
+
+- Gestión de clientes.
+- Gestión de trámites.
+- Gestión del seguimiento de trámites.
+- Validación de datos mediante Zod.
+- Arquitectura por dominios en el backend.
+- Separación Controller / Service / Repository.
+- Persistencia mediante Sequelize.
+- MySQL / MariaDB.
+- Paginación y filtros de trámites.
+- Cambio de estados.
+- Reglas de negocio para las transiciones de estado.
+- Frontend React organizado por módulos y dominios.
+- Formularios mediante React Hook Form.
+- Manejo del estado del servidor mediante TanStack Query.
+- Componentes de interfaz mediante shadcn/ui.
+
+## Fuera del Alcance
+
+Actualmente no se incluyen:
+
+- Tests unitarios.
+- Autenticación JWT.
+- Docker Compose.
+
+Estas funcionalidades pueden incorporarse posteriormente.
+
+## Contrato de Respuesta
+
+### Respuesta exitosa
+
+```json
+{
+  "ok": true,
+  "data": {}
+}
+```
+
+### Error de validación
+
+HTTP 422:
+
+```json
+{
+  "ok": false,
+  "mensaje": "Datos inválidos",
+  "errores": [
+    {
+      "campo": "num_doc",
+      "detalle": "requerido"
+    }
+  ]
+}
+```
+
+### Error de negocio
+
+HTTP 409:
+
+```json
+{
+  "ok": false,
+  "mensaje": "No se puede pasar de CERRADO a EN_FIRMAS"
+}
+```
