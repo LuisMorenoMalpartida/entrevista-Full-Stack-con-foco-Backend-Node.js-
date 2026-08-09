@@ -57,25 +57,27 @@ export class TramiteController {
   }
 
   async editar(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const { id } = req.params;
-      const { cliente, ...tramiteData } = req.body;
-      const result = await tramiteService.editarTramite(
-        Number(id),
-        tramiteData,
-        cliente
-      );
-      
-      const response: ApiResponse = {
-        ok: true,
-        data: result,
-        mensaje: 'Trámite actualizado exitosamente'
-      };
-      res.json(response);
-    } catch (error) {
-      next(error);
-    }
+  try {
+    const { id } = req.params;
+    const { cliente, tramite } = req.body;
+
+    const result = await tramiteService.editarTramite(
+      Number(id),
+      tramite,
+      cliente
+    );
+
+    const response: ApiResponse = {
+      ok: true,
+      data: result,
+      mensaje: 'Trámite actualizado exitosamente'
+    };
+
+    res.json(response);
+  } catch (error) {
+    next(error);
   }
+}
 
   async cambiarEstado(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

@@ -6,6 +6,13 @@ import {
   EliminarTramiteModal,
   TramiteDetalle,
 } from "@/modules/tramite/index.js";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +33,7 @@ import {
 } from "@/components/ui/table";
 import {
   Search,
+  MoreHorizontal,
   Plus,
   Eye,
   Edit,
@@ -105,6 +113,9 @@ export function BandejaTramites() {
   };
 
   const handleEditar = (tramite) => {
+    console.log("EDITAR:", tramite);
+    console.log("FECHA:", tramite.cliente?.fecha_nac);
+
     setSelectedTramite(tramite);
     setOpenForm(true);
   };
@@ -204,7 +215,7 @@ export function BandejaTramites() {
               <TableHead>Cliente</TableHead>
               <TableHead>Vehículo</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Fecha</TableHead>
+              <TableHead>Fecha de nacimiento</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -241,65 +252,63 @@ export function BandejaTramites() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-gray-500">
-                    {new Date(tramite.created_at).toLocaleDateString("es-ES")}
+                    {tramite.cliente?.fecha_nac
+                      ? new Date(tramite.cliente.fecha_nac).toLocaleDateString(
+                          "es-ES",
+                          {
+                            timeZone: "UTC",
+                          },
+                        )
+                      : "-"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleVer(tramite)}
-                        title="Ver detalle"
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent hover:bg-gray-100">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Abrir acciones</span>
+                      </DropdownMenuTrigger>
+
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-48 border border-black bg-white shadow-md"
                       >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleEditar(tramite)}
-                        disabled={!canEdit(tramite.estado)}
-                        title={
-                          !canEdit(tramite.estado)
-                            ? "No editable en este estado"
-                            : "Editar"
-                        }
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleCambiarEstado(tramite)}
-                        disabled={
-                          !canCambiarEstado(tramite.estado) ||
-                          TRANSICIONES_PERMITIDAS[tramite.estado]?.length === 0
-                        }
-                        title={
-                          !canCambiarEstado(tramite.estado)
-                            ? "No se puede cambiar estado"
-                            : "Cambiar estado"
-                        }
-                      >
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleEliminar(tramite)}
-                        disabled={!canEliminar(tramite.estado)}
-                        title={
-                          !canEliminar(tramite.estado)
-                            ? "No se puede eliminar en este estado"
-                            : "Eliminar"
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                        <DropdownMenuItem onClick={() => handleVer(tramite)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver detalle
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onClick={() => handleEditar(tramite)}
+                          disabled={!canEdit(tramite.estado)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onClick={() => handleCambiarEstado(tramite)}
+                          disabled={
+                            !canCambiarEstado(tramite.estado) ||
+                            TRANSICIONES_PERMITIDAS[tramite.estado]?.length ===
+                              0
+                          }
+                        >
+                          <ArrowRight className="mr-2 h-4 w-4" />
+                          Cambiar estado
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem
+                          onClick={() => handleEliminar(tramite)}
+                          disabled={!canEliminar(tramite.estado)}
+                          className="border border-black text-red-600 bg-white focus:bg-red-50 focus:text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))

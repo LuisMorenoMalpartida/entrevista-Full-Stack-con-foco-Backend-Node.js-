@@ -1,50 +1,62 @@
-import { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useCrearTramite } from '../hooks/useCrearTramite.js';
-import { useEditarTramite } from '../hooks/useEditarTramite.js';
+} from "@/components/ui/select";
+import { useCrearTramite } from "../hooks/useCrearTramite.js";
+import { useEditarTramite } from "../hooks/useEditarTramite.js";
 
 const clienteSchema = z.object({
-  tipo_doc: z.enum(['DNI', 'CE', 'RUC'], { required_error: 'Selecciona un tipo de documento' }),
-  num_doc: z.string().min(1, 'El número de documento es requerido').max(20),
-  nombres: z.string().min(1, 'Los nombres son requeridos').max(100),
-  ap_paterno: z.string().min(1, 'El apellido paterno es requerido').max(100),
-  ap_materno: z.string().max(100).optional().default(''),
-  email: z.string().email('Email inválido').optional().default(''),
-  telefono: z.string().max(20).optional().default(''),
-  fecha_nac: z.string().optional().default(''),
+  tipo_doc: z.enum(["DNI", "CE", "RUC"], {
+    required_error: "Selecciona un tipo de documento",
+  }),
+  num_doc: z.string().min(1, "El número de documento es requerido").max(20),
+  nombres: z.string().min(1, "Los nombres son requeridos").max(100),
+  ap_paterno: z.string().min(1, "El apellido paterno es requerido").max(100),
+  ap_materno: z.string().max(100).optional().default(""),
+  email: z.string().email("Email inválido").optional().default(""),
+  telefono: z.string().max(20).optional().default(""),
+  fecha_nac: z.string().optional().default(""),
 });
 
 const tramiteSchema = z.object({
-  placa: z.string().max(10).optional().default(''),
-  marca: z.string().min(1, 'La marca es requerida').max(50),
-  modelo: z.string().min(1, 'El modelo es requerido').max(50),
+  placa: z.string().max(10).optional().default(""),
+  marca: z.string().min(1, "La marca es requerida").max(50),
+  modelo: z.string().min(1, "El modelo es requerido").max(50),
   anio: z.coerce.number().int().min(1990).max(2027),
-  monto: z.coerce.number().positive('El monto debe ser mayor a 0').optional().default(0),
+  monto: z.coerce
+    .number()
+    .positive("El monto debe ser mayor a 0")
+    .optional()
+    .default(0),
 });
 
 const formSchema = z.object({
   cliente: clienteSchema,
   tramite: tramiteSchema,
 });
+
+const formatDateForInput = (value) => {
+  if (!value) return "";
+
+  return String(value).slice(0, 10);
+};
 
 export function TramiteForm({ open, onOpenChange, tramite = null }) {
   const isEditing = !!tramite;
@@ -61,19 +73,19 @@ export function TramiteForm({ open, onOpenChange, tramite = null }) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       cliente: {
-        tipo_doc: 'DNI',
-        num_doc: '',
-        nombres: '',
-        ap_paterno: '',
-        ap_materno: '',
-        email: '',
-        telefono: '',
-        fecha_nac: '',
+        tipo_doc: "DNI",
+        num_doc: "",
+        nombres: "",
+        ap_paterno: "",
+        ap_materno: "",
+        email: "",
+        telefono: "",
+        fecha_nac: "",
       },
       tramite: {
-        placa: '',
-        marca: '',
-        modelo: '',
+        placa: "",
+        marca: "",
+        modelo: "",
         anio: new Date().getFullYear(),
         monto: 0,
       },
@@ -81,42 +93,48 @@ export function TramiteForm({ open, onOpenChange, tramite = null }) {
   });
 
   useEffect(() => {
-    if (tramite && open) {
+    if (!open) return;
+
+    console.log("TRÁMITE PARA EDITAR:", tramite);
+    console.log("FECHA NAC:", tramite?.cliente?.fecha_nac);
+
+    if (tramite) {
       reset({
         cliente: {
-          tipo_doc: tramite.tipo_doc || 'DNI',
-          num_doc: tramite.num_doc || '',
-          nombres: tramite.nombres || '',
-          ap_paterno: tramite.ap_paterno || '',
-          ap_materno: tramite.ap_materno || '',
-          email: tramite.email || '',
-          telefono: tramite.telefono || '',
-          fecha_nac: tramite.fecha_nac || '',
+          tipo_doc: tramite.cliente?.tipo_doc ?? "DNI",
+          num_doc: tramite.cliente?.num_doc ?? "",
+          nombres: tramite.cliente?.nombres ?? "",
+          ap_paterno: tramite.cliente?.ap_paterno ?? "",
+          ap_materno: tramite.cliente?.ap_materno ?? "",
+          email: tramite.cliente?.email ?? "",
+          telefono: tramite.cliente?.telefono ?? "",
+          fecha_nac: formatDateForInput(tramite.cliente?.fecha_nac),
         },
+
         tramite: {
-          placa: tramite.placa || '',
-          marca: tramite.marca || '',
-          modelo: tramite.modelo || '',
-          anio: tramite.anio || new Date().getFullYear(),
-          monto: tramite.monto || 0,
+          placa: tramite.placa ?? "",
+          marca: tramite.marca ?? "",
+          modelo: tramite.modelo ?? "",
+          anio: tramite.anio ?? new Date().getFullYear(),
+          monto: tramite.monto ?? 0,
         },
       });
-    } else if (!tramite && open) {
+    } else {
       reset({
         cliente: {
-          tipo_doc: 'DNI',
-          num_doc: '',
-          nombres: '',
-          ap_paterno: '',
-          ap_materno: '',
-          email: '',
-          telefono: '',
-          fecha_nac: '',
+          tipo_doc: "DNI",
+          num_doc: "",
+          nombres: "",
+          ap_paterno: "",
+          ap_materno: "",
+          email: "",
+          telefono: "",
+          fecha_nac: "",
         },
         tramite: {
-          placa: '',
-          marca: '',
-          modelo: '',
+          placa: "",
+          marca: "",
+          modelo: "",
           anio: new Date().getFullYear(),
           monto: 0,
         },
@@ -136,14 +154,18 @@ export function TramiteForm({ open, onOpenChange, tramite = null }) {
   const isLoading = crearMutation.isPending || editarMutation.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Trámite' : 'Crear Nuevo Trámite'}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>
+            {isEditing ? "Editar Trámite" : "Crear Nuevo Trámite"}
+          </SheetTitle>
+        </SheetHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Datos del Cliente</h3>
+            <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">
+              Datos del Cliente
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Documento</Label>
@@ -164,71 +186,106 @@ export function TramiteForm({ open, onOpenChange, tramite = null }) {
                   )}
                 />
                 {errors.cliente?.tipo_doc && (
-                  <p className="text-sm text-red-500">{errors.cliente.tipo_doc.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.cliente.tipo_doc.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
                 <Label>Número de Documento</Label>
-                <Input {...register('cliente.num_doc')} placeholder="12345678" />
+                <Input
+                  {...register("cliente.num_doc")}
+                  placeholder="12345678"
+                />
                 {errors.cliente?.num_doc && (
-                  <p className="text-sm text-red-500">{errors.cliente.num_doc.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.cliente.num_doc.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
                 <Label>Nombres</Label>
-                <Input {...register('cliente.nombres')} placeholder="Juan Carlos" />
+                <Input
+                  {...register("cliente.nombres")}
+                  placeholder="Juan Carlos"
+                />
                 {errors.cliente?.nombres && (
-                  <p className="text-sm text-red-500">{errors.cliente.nombres.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.cliente.nombres.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
                 <Label>Apellido Paterno</Label>
-                <Input {...register('cliente.ap_paterno')} placeholder="Pérez" />
+                <Input
+                  {...register("cliente.ap_paterno")}
+                  placeholder="Pérez"
+                />
                 {errors.cliente?.ap_paterno && (
-                  <p className="text-sm text-red-500">{errors.cliente.ap_paterno.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.cliente.ap_paterno.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
                 <Label>Apellido Materno</Label>
-                <Input {...register('cliente.ap_materno')} placeholder="García" />
+                <Input
+                  {...register("cliente.ap_materno")}
+                  placeholder="García"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input {...register('cliente.email')} type="email" placeholder="correo@ejemplo.com" />
+                <Input
+                  {...register("cliente.email")}
+                  type="email"
+                  placeholder="correo@ejemplo.com"
+                />
                 {errors.cliente?.email && (
-                  <p className="text-sm text-red-500">{errors.cliente.email.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.cliente.email.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
                 <Label>Teléfono</Label>
-                <Input {...register('cliente.telefono')} placeholder="999888777" />
+                <Input
+                  {...register("cliente.telefono")}
+                  placeholder="999888777"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Fecha de Nacimiento</Label>
-                <Input {...register('cliente.fecha_nac')} type="date" />
+                <Input {...register("cliente.fecha_nac")} type="date" />
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Datos del Trámite</h3>
+            <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">
+              Datos del Trámite
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Placa</Label>
-                <Input {...register('tramite.placa')} placeholder="ABC-123" />
+                <Input {...register("tramite.placa")} placeholder="ABC-123" />
               </div>
               <div className="space-y-2">
                 <Label>Marca</Label>
-                <Input {...register('tramite.marca')} placeholder="Toyota" />
+                <Input {...register("tramite.marca")} placeholder="Toyota" />
                 {errors.tramite?.marca && (
-                  <p className="text-sm text-red-500">{errors.tramite.marca.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.tramite.marca.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
                 <Label>Modelo</Label>
-                <Input {...register('tramite.modelo')} placeholder="Corolla" />
+                <Input {...register("tramite.modelo")} placeholder="Corolla" />
                 {errors.tramite?.modelo && (
-                  <p className="text-sm text-red-500">{errors.tramite.modelo.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.tramite.modelo.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
@@ -241,7 +298,9 @@ export function TramiteForm({ open, onOpenChange, tramite = null }) {
                   )}
                 />
                 {errors.tramite?.anio && (
-                  <p className="text-sm text-red-500">{errors.tramite.anio.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.tramite.anio.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
@@ -250,26 +309,41 @@ export function TramiteForm({ open, onOpenChange, tramite = null }) {
                   name="tramite.monto"
                   control={control}
                   render={({ field }) => (
-                    <Input {...field} type="number" step="0.01" placeholder="0.00" />
+                    <Input
+                      {...field}
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
                   )}
                 />
                 {errors.tramite?.monto && (
-                  <p className="text-sm text-red-500">{errors.tramite.monto.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.tramite.monto.message}
+                  </p>
                 )}
               </div>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <SheetFooter className="mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading || isSubmitting}>
-              {isLoading || isSubmitting ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear'}
+              {isLoading || isSubmitting
+                ? "Guardando..."
+                : isEditing
+                  ? "Actualizar"
+                  : "Crear"}
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
