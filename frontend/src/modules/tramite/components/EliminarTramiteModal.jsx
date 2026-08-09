@@ -7,10 +7,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useEliminarTramite } from '../hooks/useEliminarTramite.js';
+} from "@/components/ui/alert-dialog";
+import { useEliminarTramite } from "../hooks/useEliminarTramite.js";
 
-export function EliminarTramiteModal({ open, onOpenChange, tramite, onSuccess }) {
+export function EliminarTramiteModal({
+  open,
+  onOpenChange,
+  tramite,
+  onSuccess,
+}) {
   const eliminarMutation = useEliminarTramite();
 
   const handleDelete = async () => {
@@ -25,22 +30,29 @@ export function EliminarTramiteModal({ open, onOpenChange, tramite, onSuccess })
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="border-2 border-black bg-white !opacity-100">
         <AlertDialogHeader>
           <AlertDialogTitle>¿Eliminar trámite?</AlertDialogTitle>
+
           <AlertDialogDescription>
-            Esta acción no se puede deshacer. Se eliminará permanentemente el trámite{' '}
-            <span className="font-medium">{tramite?.codigo}</span> y todos sus datos asociados.
+            Esta acción no se puede deshacer. Se eliminará permanentemente el
+            trámite{" "}
+            <span className="font-medium">{tramite?.codigo}</span> y todos sus
+            datos asociados.
           </AlertDialogDescription>
         </AlertDialogHeader>
+
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel className="border border-black">
+            Cancelar
+          </AlertDialogCancel>
+
           <AlertDialogAction
             onClick={handleDelete}
             disabled={eliminarMutation.isPending}
-            className="bg-red-600 hover:bg-red-700"
+            className="border border-black bg-red-600 hover:bg-red-700"
           >
-            {eliminarMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+            {eliminarMutation.isPending ? "Eliminando..." : "Eliminar"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
