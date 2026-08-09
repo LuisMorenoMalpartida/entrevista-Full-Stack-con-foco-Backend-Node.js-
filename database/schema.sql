@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `clientes` (
     `telefono` VARCHAR(20),
     `fecha_nac` DATE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT `unique_tipo_doc_num_doc` UNIQUE (`tipo_doc`, `num_doc`)
 );
 
@@ -23,11 +23,11 @@ CREATE TABLE IF NOT EXISTS `tramites` (
     `placa` VARCHAR(10),
     `marca` VARCHAR(50) NOT NULL,
     `modelo` VARCHAR(50) NOT NULL,
-    `anio` INT NOT NULL CHECK (`anio` BETWEEN 1990 AND 2027),
+    `anio` INT NOT NULL CHECK (`anio` BETWEEN 1990 AND YEAR(CURRENT_DATE) + 5),
     `estado` ENUM('REGISTRADO','EN_FIRMAS','PRESENTADO','OBSERVADO','INSCRITO','CERRADO','ANULADO') NOT NULL DEFAULT 'REGISTRADO',
     `monto` DECIMAL(10,2),
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT `fk_tramites_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes`(`id`) ON DELETE RESTRICT
 );
 
@@ -43,11 +43,14 @@ CREATE TABLE IF NOT EXISTS `tramite_seguimiento` (
 );
 
 CREATE INDEX `idx_tramites_estado` ON `tramites`(`estado`);
-CREATE INDEX `idx_tramites_codigo` ON `tramites`(`codigo`);
 CREATE INDEX `idx_tramites_cliente_id` ON `tramites`(`cliente_id`);
 CREATE INDEX `idx_tramite_seguimiento_tramite_id` ON `tramite_seguimiento`(`tramite_id`);
 CREATE INDEX `idx_clientes_num_doc` ON `clientes`(`num_doc`);
 CREATE INDEX `idx_clientes_nombres` ON `clientes`(`nombres`);
+
+ALTER TABLE `clientes` AUTO_INCREMENT = 6;
+ALTER TABLE `tramites` AUTO_INCREMENT = 9;
+ALTER TABLE `tramite_seguimiento` AUTO_INCREMENT = 23;
 
 INSERT INTO `clientes` (`tipo_doc`, `num_doc`, `nombres`, `ap_paterno`, `ap_materno`, `email`, `telefono`, `fecha_nac`) VALUES
 ('DNI', '12345678', 'Juan', 'Perez', 'Gomez', 'juan.perez@email.com', '987654321', '1985-03-15'),
